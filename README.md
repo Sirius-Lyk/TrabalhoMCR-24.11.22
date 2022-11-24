@@ -31,5 +31,6 @@ line 194  [ while(cm <= 8){
 O display Oled foi utilizado com o objetivo de mostrar o estado das rodas e do "freio", sendo atualizado ao fazer alteração em seus estados.
 
 
-*Imagem para consulta de pinos*
+**Imagem para consulta de pinos**
+
 ![image](https://user-images.githubusercontent.com/118866041/203679887-2f3344d2-9bec-498f-99ff-c26cb0519ef2.png)
