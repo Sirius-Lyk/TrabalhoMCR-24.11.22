@@ -1,0 +1,235 @@
+#include <WiFi.h>
+#include "PubSubClient.h"
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+#define PIN_TRIG 23
+#define PIN_ECHO 19
+
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, & Wire, -1);
+
+const char* ssid = "Wokwi-GUEST";
+const char* password = "";
+const char* mqttServer = "broker.hivemq.com";
+int port = 1883;
+String stMac;
+char mac[50];
+char clientId[50];
+int tempo = millis();
+
+WiFiClient espClient;
+PubSubClient client(espClient);
+
+int LEDFrenteD = 2;
+int LEDFrenteE = 12;
+int LEDReD = 15;
+int LEDReE = 13;
+String Turn1 = "On";
+String Turn0 = "Off";
+
+void setup() {
+  pinMode(PIN_TRIG, OUTPUT);
+  pinMode(PIN_ECHO, INPUT);
+  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+    Serial.println(F("SSD1306 allocation failed"));
+    for (;;);
+  }
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(WHITE);
+  Serial.begin(115200);
+  randomSeed(analogRead(0));
+  display.setCursor(0, 0);
+  delay(10);
+  Serial.println();
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+  display.println("Connecting to: ");
+  display.print(ssid);
+  display.display();
+  wifiConnect();
+
+  display.clearDisplay();
+  display.setCursor(0, 5);
+  Serial.println("");
+  Serial.println("WiFi connected");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
+  Serial.println(WiFi.macAddress());
+  stMac = WiFi.macAddress();
+  stMac.replace(":", "_");
+  Serial.println(stMac);
+  display.println("");
+  display.println("WiFi connected");
+  display.println("IP address: ");
+  display.println(WiFi.localIP());
+  display.println(WiFi.macAddress());
+  display.println(stMac);
+  display.display();
+  
+  client.setServer(mqttServer, port);
+  client.setCallback(callback);
+  pinMode(LEDFrenteD, OUTPUT);
+  pinMode(LEDFrenteE, OUTPUT);
+  pinMode(LEDReD, OUTPUT);
+  pinMode(LEDReE, OUTPUT);
+}
+
+void wifiConnect() {
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+    display.print(".");
+    display.display();
+  }
+}
+
+void mqttReconnect() {
+  while (!client.connected()) {
+    display.clearDisplay();
+    display.setCursor(0, 5);
+    Serial.print("Attempting MQTT connection...");
+    display.println("Attempting MQTT connection...");
+    long r = random(1000);
+    sprintf(clientId, "clientId-%ld", r);
+    if (client.connect(clientId)) {
+      Serial.print(clientId);
+      Serial.println(" connected");
+      display.println(clientId);
+      display.print("connected");
+      display.display();
+      client.subscribe("MVP-Frente");
+      client.subscribe("MVP-Ré");
+      client.subscribe("MVP-Pare");
+      delay(1000);
+      display.clearDisplay();
+      display.setCursor(0, 0);
+      display.println("Pronto!");
+      display.display();
+
+    } else {
+      display.clearDisplay();
+      display.setCursor(0, 5);
+      Serial.print("failed, rc=");
+      Serial.print(client.state());
+      Serial.println(" try again in 5 seconds");
+      display.println("failed, rc=");
+      display.println(client.state());
+      display.print("try again in 5 seconds");
+      display.display();
+      delay(5000);
+    }
+  }
+
+}
+  int duration;
+  int cm;
+void callback(char* topic, byte* message, unsigned int length) {
+  
+  /*Serial.print("Mensagem recebida no topico: ");
+  Serial.print(topic);
+  Serial.print(". Messagem: ");*/
+  String stMessage;
+  
+  for (int i = 0; i < length; i++) {
+    //Serial.print((char)message[i]);
+    stMessage += (char)message[i];
+  }
+  //Serial.println();
+  display.fillRect(0, 0, 128, 8, BLACK);
+  display.setCursor(0, 0);
+  display.println("Estado de movimento:");
+  display.fillRect(0, 31, 128, 8, BLACK);
+  display.setCursor(0,31);
+  display.println("Estado do Freio:");
+  if (String(topic) == "MVP-Frente") {
+    if(stMessage == "on"){
+      delay(500);
+      display.fillRect(0, 8, 128, 30, BLACK);
+      display.setCursor(0, 8);
+      delay(500);
+      display.print("Seguindo");
+      Serial.println("Seguindo");
+      digitalWrite(LEDFrenteD, HIGH);
+      digitalWrite(LEDFrenteE, HIGH);
+      client.publish("MVP-Ré", "off");
+      client.publish("MVP-Pare", "off");
+    }
+    else if(stMessage == "off"){
+      digitalWrite(LEDFrenteD, LOW);
+      digitalWrite(LEDFrenteE, LOW);
+    }
+  }
+  if (String(topic) == "MVP-Ré") {
+    if(stMessage == "on"){
+      display.fillRect(0, 8, 128, 30, BLACK);
+      display.setCursor(0, 8);
+      display.print("Re");
+      Serial.println("Ré!");
+      digitalWrite(LEDReD, HIGH);
+      digitalWrite(LEDReE, HIGH);
+      client.publish("MVP-Frente", "off");
+      client.publish("MVP-Pare", "off");
+    }
+    else if(stMessage == "off"){
+      digitalWrite(LEDReD, LOW);
+      digitalWrite(LEDReE, LOW);
+    }
+  }
+  if (String(topic) == "MVP-Pare") {
+    if(stMessage == "on"){
+      display.fillRect(0, 8, 128, 30, BLACK);
+      display.setCursor(0, 8);
+      display.print("Parado!");
+      display.fillRect(0, 39, 128, 29, BLACK);
+      display.setCursor(0, 39);
+      display.print("Freio de mao puxado!");
+      Serial.println("Freio de mão puxado!");
+      client.publish("MVP-Ré", "off");
+      client.publish("MVP-Frente", "off");
+      while(cm <= 8){
+        digitalWrite(PIN_TRIG, HIGH);
+        delayMicroseconds(10);
+        digitalWrite(PIN_TRIG, LOW);
+        duration = pulseIn(PIN_ECHO, HIGH);
+        cm = (duration / 58);
+        digitalWrite(LEDFrenteD, LOW);
+        digitalWrite(LEDFrenteE, LOW);
+        digitalWrite(LEDReD, HIGH);
+        digitalWrite(LEDReE, HIGH);
+      }
+    }
+    else if (stMessage == "off") {
+      display.fillRect(0, 39, 128, 29, BLACK);
+      display.setCursor(0, 39);
+      display.print("Freio de mao solto!");
+      Serial.println("Freio de mão solto!");
+    }
+  }
+  display.display();
+}
+
+void loop() {
+  delay(10);
+  tempo = millis();
+  if (millis() <= tempo+100) {
+    digitalWrite(PIN_TRIG, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(PIN_TRIG, LOW);
+    duration = pulseIn(PIN_ECHO, HIGH);
+    cm = (duration / 58);
+    if (cm <= 9){
+      client.publish("MVP-Pare", "on");
+    }
+    else {
+    }
+  }
+  if (!client.connected()) {
+    mqttReconnect();
+  }
+  client.loop();
+}
