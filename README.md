@@ -1,6 +1,5 @@
 # TrabalhoMCR-24.11.22
 Trabalho de MCR 2º Mecatrônica 2022 - Simulação de carrinho controlado via MQTT
-
 **Participantes: Vinicius Viana da Silva e Maria Luiza Aredes Borgo**
 
 O trabalho envolve o desenvolvimento e simulação através do site (Wokwi.com) de um carrinho controlado por três botões: Frente, Ré e Pare.
