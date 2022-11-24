@@ -4,7 +4,9 @@ O trabalho envolve o desenvolvimento e simulação através do site (Wokwi.com) 
 ![Sem Título-1](https://user-images.githubusercontent.com/118866041/203677512-6290ccb3-3b87-401e-8236-0be8c6cfe86d.png)
 
 O IoT Contém um sensor de distância ultrassônico no qual evita a covisão frontal caso o carrinho esteje a menos de 9cm de distância de uma superfície. O sensor poder ser trocado e adaptado para um sensor de leitura analógica com apenas algumas alterações no código. 
+
 line 10 [ int sensor = digitalRead(PinSensor) ]; 
+
 line 219  [ if (millis() <= tempo+100) {
               sensor *=3;
               cm = (sensor / 100);
@@ -14,6 +16,7 @@ line 219  [ if (millis() <= tempo+100) {
             else {
             }
           ];
+          
 line 194  [ while(cm <= 8){
               sensor *=3;
               cm = (sensor / 100);
@@ -22,5 +25,6 @@ line 194  [ while(cm <= 8){
               digitalWrite(LEDReD, HIGH);
               digitalWrite(LEDReE, HIGH);
             }
-          ]
+          ];
+          
 O display Oled foi utilizado com o objetivo de mostrar o estado das rodas e do "freio", sendo atualizado ao fazer alteração em seus estados.
